@@ -1,5 +1,16 @@
+ARG GIT_REPO=https://github.com/xr0gu3/godot.git
+ARG GIT_BRANCH=dotnet/mono-static-linking
+
+ARG DEV_VERSION=4.5.0.dev
+ARG RELEASE_VERSION=4.5.1.rc
+
 # Install emsdk manually is a pain, so i'll use the official image
 FROM emscripten/emsdk:4.0.11 AS builder
+
+ARG GIT_REPO
+ARG GIT_BRANCH
+ARG DEV_VERSION
+ARG RELEASE_VERSION
 
 # Dependencies for Godot + Mono
 RUN apt-get update && apt-get install -y \
@@ -12,12 +23,10 @@ RUN apt-get update && apt-get install -y \
 RUN wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O pkg.deb \
   && dpkg -i pkg.deb && rm pkg.deb \
   && apt-get update && apt-get install -y dotnet-sdk-9.0
+
 RUN dotnet workload install wasm-tools
 
 WORKDIR /godot
-
-ENV GIT_REPO=https://github.com/xr0gu3/godot.git
-ENV GIT_BRANCH=dotnet/mono-static-linking
 
 RUN git clone -b ${GIT_BRANCH} ${GIT_REPO} .
 
@@ -45,12 +54,12 @@ RUN scons platform=web target=template_release \
   module_mono_enabled=yes threads=yes
 
 # Copy templates to godot templates folder
-RUN mkdir -p /root/.local/share/godot/export_templates/4.5.1.rc.mono
-RUN mkdir -p /root/.local/share/godot/export_templates/4.5.dev.mono
-RUN cp bin/godot.web.template_debug.wasm32.mono.zip /root/.local/share/godot/export_templates/4.5.1.rc.mono/web_debug.zip
-RUN cp bin/godot.web.template_release.wasm32.mono.zip /root/.local/share/godot/export_templates/4.5.1.rc.mono/web_release.zip
-RUN cp bin/godot.web.template_debug.wasm32.mono.zip /root/.local/share/godot/export_templates/4.5.dev.mono/web_debug.zip
-RUN cp bin/godot.web.template_release.wasm32.mono.zip /root/.local/share/godot/export_templates/4.5.dev.mono/web_release.zip
+RUN mkdir -p /root/.local/share/godot/export_templates/${RELEASE_VERSION}.mono
+RUN mkdir -p /root/.local/share/godot/export_templates/${DEV_VERSION}.mono
+RUN cp bin/godot.web.template_debug.wasm32.mono.zip /root/.local/share/godot/export_templates/${RELEASE_VERSION}.mono/web_debug.zip
+RUN cp bin/godot.web.template_release.wasm32.mono.zip /root/.local/share/godot/export_templates/${RELEASE_VERSION}.mono/web_release.zip
+RUN cp bin/godot.web.template_debug.wasm32.mono.zip /root/.local/share/godot/export_templates/${DEV_VERSION}.mono/web_debug.zip
+RUN cp bin/godot.web.template_release.wasm32.mono.zip /root/.local/share/godot/export_templates/${DEV_VERSION}.mono/web_release.zip
 
 # We won't use globalization in c# web for now.
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
