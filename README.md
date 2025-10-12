@@ -1,20 +1,19 @@
-# Godot 4 WEB .NET Building
+# Godot 4 Web .NET Build Environment
 
 ## Introduction
 
-With this repo you can build your godot C# projects for web (experimental).
+This repository allows you to build your **Godot C#** projects for the web (experimental).
+You can read more about it in this [Godot issue](https://github.com/godotengine/godot/issues/70796).
 
-You can read more about in this [godot issue](https://github.com/godotengine/godot/issues/70796).
+## Overview
 
-## Explanation
+1. The `Dockerfile` builds a **Godot Mono Linux editor** from a configurable repository and branch.
+2. It also compiles the **web export templates (with threads enabled)**.
+3. After building, you can run `extract.sh` or `export.sh` to extract assets or export your project.
 
-1. The `Dockerfile` will build a godot mono linux editor, from a specific repo and branch (and you can change that).
-2. It will also compile the export templates for web (with threads).
-3. After the build you can run the scripts `extract.sh` or `export.sh` to extract or export the files.
+## Docker Image
 
-## Dockerfile/Docker Image
-
-To build the image you can just run:
+Build the image with:
 
 ```sh
 docker build . -t renanrcp/godot-web-build
@@ -22,62 +21,70 @@ docker build . -t renanrcp/godot-web-build
 
 <br />
 
-**OBS**: You can change the image tag, but it will break the `export` and `extract` scripts.
+**NOTE**: If you change the image tag, update the `extract` and `export` scripts accordingly.
 
-The build process uses few build args where you can change to customize:
+### Build arguments
 
-- **GIT_REPO** -> The repository where the docker image should build the editor and the export templates. The default value is `https://github.com/xr0gu3/godot.git`.
-- **GIT_BRANCH** -> The branch where the docker image should build the editor and the export templates. The default value is `dotnet/mono-static-linking`.
-- **DEV_VERSION** -> The godot dev version of the builded editor, if you change the `GIT_REPO` or `GIT_BRANCH` args to another godot version you may change this. The default value is `4.5.dev`.
-- **RELEASE_VERSION** -> The godot dev version of the builded editor, if you change the `GIT_REPO` or `GIT_BRANCH` args to another godot version you may change this. The default value is `4.5.1.rc`.
-- **EDITOR_SCON_FLAGS** -> Flags used by scons when build the editor. The default values is `dev_mode=yes debug_symbols=no tests=no`.
-- **EXPORT_SCON_FLAGS** -> Flags used by scons when build the editor. The default values is ` `.
+You can customise the build via these `--build-arg` keys
+
+| **ARG**               | **PURPOSE**                                               | **DEFAULT**                            |
+| --------------------- | --------------------------------------------------------- | -------------------------------------- |
+| **GIT_REPO**          | Repository from which the editor and templates are built. | `https://github.com/xr0gu3/godot.git`  |
+| **GIT_BRANCH**        | Branch to compile.                                        | `dotnet/mono-static-linking`           |
+| **DEV_VERSION**       | Dev version string used by the built editor.              | `4.5.dev`                              |
+| **RELEASE_VERSION**   | Release version string used by the built editor.          | `4.5.1.rc`                             |
+| **EDITOR_SCON_FLAGS** | Flags passed to **SCons** when building the editor.       | dev_mode=yes debug_symbols=no tests=no |
+| **EXPORT_SCON_FLAGS** | Flags passed to SCons when building the export templates. | (empty)                                |
 
 ## Scripts
 
-After build the docker image you will have two scripts.
+After building the image, two convenience scripts are available.
 
 ### Extract
 
-With the script `extract.sh` you can extract these builded godot files to a specific folder:
+Extracts the following built files to a destination folder:
 
-- godot.linuxbsd.editor.x86_64.mono (the editor)
-- GodotSharp (folder, to use with the editor)
-- nuget (folder, the compiled godot nuget packages)
-- godot.web.template_release.wasm32.mono.zip (web template release with threads)
-- godot.web.template_debug.wasm32.mono.zip (web debug release with threads)
+- `godot.linuxbsd.editor.x86_64.mono` (the editor)
+- `GodotSharp/` (directory, to use with the editor)
+- `nuget/` (directory, the compiled godot nuget packages)
+- `godot.web.template_release.wasm32.mono.zip`
+- `godot.web.template_debug.wasm32.mono.zip`
 
-**OBS**: I don't know why, but using the templates outside the image seens to have different effects.
+**NOTE**: Running the templates outside the container may yield different results.
 
 #### Usage:
 
 ```sh
-./extract.sh ./my-path/godot-extract
+./extract.sh ./path/to/output
 ```
 
 #### Arguments:
 
-1. Output Path -> Your path where the extracted files should appear.
+| **Pos** | **Name**        | **Description**                           |
+| ------- | --------------- | ----------------------------------------- |
+| **1**   | **Output Path** | Where the extracted files will be placed. |
 
 ### Export
 
-With the script `export.sh` you can build a godot c# project for the web, and you can choose between release, debug or pack.
+Exports a Godot C# project for the web.
 
 #### Usage
 
 ```sh
-./export.sh ./my-project-path ./my-project-export-destination-path release index.html
+./export.sh /path/to/project /path/to/build release index.html
 ```
 
 #### Arguments
 
-1. Soruce Path -> The path for your godot c# project
-2. Output Path -> The path where the exported files should appear.
-3. Export Type -> The type of the export. The valid values is `release`, `debug` and `pack`.
-4. File Name Output -> The file name output. It should be something like `index.html`, `MyGame.html`, `"My Game.pck"`.
+| **Pos** | **Name**             | **Description**                                 |
+| ------- | -------------------- | ----------------------------------------------- |
+| **1**   | **Source Path**      | Path to your Godot C# project.                  |
+| **2**   | **Output Path**      | Destination for exported files.                 |
+| **3**   | **Export Type**      | `release`, `debug`, or `pack`.                  |
+| **4**   | **Output File Name** | e.g. `index.html`, `MyGame.html`, `MyGame.pck`. |
 
-## Future
+## Roadmap
 
-This repo should be used only for the preview version, maybe official godot 4 web c# support will come in the version 4.6.
+This image targets the preview C#-for-Web workflow. Official support is expected around Godot 4.6 (subject to change).
 
-I also tried to build the templates from the 4.5 stable version + c# web preview in [this branch](https://github.com/renanrcp/godot/tree/feat/add-mono-web), but the game doesn't render nothing in screen (but scripts works, you can see in the console).
+I also experimented with 4.5 stable + C# web preview in [this branch](https://github.com/renanrcp/godot/tree/feat/add-mono-web); the game renders nothing on-screen, although scripts run (check the browser console).
