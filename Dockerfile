@@ -1,16 +1,23 @@
 ARG GIT_REPO=https://github.com/xr0gu3/godot.git
 ARG GIT_BRANCH=dotnet/mono-static-linking
 
-ARG DEV_VERSION=4.5.0.dev
+ARG DEV_VERSION=4.5.dev
 ARG RELEASE_VERSION=4.5.1.rc
+
+ARG EDITOR_SCON_FLAGS="dev_mode=yes debug_symbols=no tests=no"
+ARG EXPORT_SCON_FLAGS=""
 
 # Install emsdk manually is a pain, so i'll use the official image
 FROM emscripten/emsdk:4.0.11 AS builder
 
 ARG GIT_REPO
 ARG GIT_BRANCH
+
 ARG DEV_VERSION
 ARG RELEASE_VERSION
+
+ARG EDITOR_SCON_FLAGS
+ARG EXPORT_SCON_FLAGS
 
 # Dependencies for Godot + Mono
 RUN apt-get update && apt-get install -y \
@@ -35,9 +42,9 @@ RUN dotnet nuget add source /godot/nuget --name NugetSource
 RUN mkdir /root/.nuget/NuGet/nuget
 
 # Generate editor
-RUN scons platform=linuxbsd target=editor \
-  dev_mode=yes module_mono_enabled=yes \
-  debug_symbols=no tests=no
+RUN scons platform=linuxbsd target=editor module_mono_enabled=yes \
+  ${EDITOR_SCON_FLAGS}
+
 
 # Generate Mono glue and sdk
 RUN ./bin/godot.linuxbsd.editor.x86_64.mono --headless \
@@ -49,9 +56,9 @@ RUN python3 modules/mono/build_scripts/build_assemblies.py \
 #  Build Web Templates
 ENV EMCC_CFLAGS="-pthread" EMCC_CXXFLAGS="-pthread"
 RUN scons platform=web target=template_debug \
-  module_mono_enabled=yes threads=yes
+  module_mono_enabled=yes threads=yes ${EXPORT_SCON_FLAGS}
 RUN scons platform=web target=template_release \
-  module_mono_enabled=yes threads=yes
+  module_mono_enabled=yes threads=yes ${EXPORT_SCON_FLAGS}
 
 # Copy templates to godot templates folder
 RUN mkdir -p /root/.local/share/godot/export_templates/${RELEASE_VERSION}.mono
